@@ -55,29 +55,27 @@ app.get('/initialize', async (request, response) => {
 })
 
 app.get('/transactions', (request, response) => {
-    const {search="", limit = 10, page = 1} = request.query;
+    const { search = "", limit = 10, page = 1, month = "1" } = request.query;
     const offset = (page - 1) * limit;
-    let searchQuery = `
-        SELECT 
-            * 
-        FROM 
-            productTransactions
-        WHERE 
-            title LIKE ? 
-            OR description LIKE ? 
-            OR category LIKE ?
-            LIMIT ? OFFSET ?; 
-    `
-    const searchParam = `%${search}%`
     const monthFormatted = month.padStart(2, '0');
-    db.all(searchQuery, [searchParam, searchParam, searchParam, limit, offset, monthFormatted], (err,rows)=> {
+
+    let searchQuery = `
+        SELECT * FROM productTransactions
+        WHERE (title LIKE ? OR description LIKE ? OR category LIKE ?)
+        AND strftime('%m', dateOfSale) = ?
+        LIMIT ? OFFSET ?;
+    `;
+
+    const searchParam = `%${search}%`;
+
+    db.all(searchQuery, [searchParam, searchParam, searchParam, monthFormatted, limit, offset], (err, rows) => {
         if (err) {
-            response.status(500).json({error: err.message});
-            return;
+            console.error("Database Error:", err.message);
+            return response.status(500).json({ error: err.message });
         }
-        response.json({page: Number(page), limit: Number(limit), transactions: rows});
-    })
-})
+        response.json({ page: Number(page), limit: Number(limit), transactions: rows });
+    });
+});
 
 app.get('/statistics', (request, response) => {
     const {month} = request.query;
