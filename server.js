@@ -55,20 +55,18 @@ app.get('/initialize', async (request, response) => {
 })
 
 app.get('/transactions', (request, response) => {
-    const { search = "", limit = 10, page = 1, month = "3" } = request.query;
-    const offset = (page - 1) * limit;
-    const monthFormatted = month.padStart(2, '0');
+    const { search = "", limit = 10, page = 1} = request.query;
+    const offset = (page - 1) * Number(limit);
 
     let searchQuery = `
         SELECT * FROM productTransactions
-        WHERE (title LIKE ? OR description LIKE ? OR category LIKE ?)
-        AND strftime('%m', dateOfSale) = ?
+        WHERE (LOWER(title) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?) OR LOWER(category) LIKE LOWER(?))
         LIMIT ? OFFSET ?;
     `;
 
     const searchParam = `%${search}%`;
 
-    db.all(searchQuery, [searchParam, searchParam, searchParam, monthFormatted, limit, offset], (err, rows) => {
+    db.all(searchQuery, [searchParam, searchParam, searchParam, Number(limit), offset], (err, rows) => {
         if (err) {
             console.error("Database Error:", err.message);
             return response.status(500).json({ error: err.message });
